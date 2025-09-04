@@ -1,0 +1,29 @@
+#  Template maven-build
+
+#  This template allows you to test and build your Java project with Maven.
+#  The workflow allows running tests, code checkstyle and security scans on the default branch.
+
+# Prerequisites: pom.xml and appropriate project structure should exist in the repository.
+
+image: maven:3.6.3
+
+pipelines:
+  default:
+    - step:
+        caches:
+          - maven
+        script: # Modify the commands below to build your repository.
+          - mvn clean install #-B verify # -B batch mode makes Maven less verbose
+    - step:
+        caches:
+          - maven
+        name: Deploy to production
+        image: maven:3.3.9
+        deployment: production
+        trigger: manual
+        script:
+          - ssh backend@161.35.80.91 'sudo service backend stop'
+          - ssh backend@161.35.80.91 'rm -f /home/tfc/backend/backend.jar'
+          - mvn clean install
+          - scp /root/.m2/repository/com/tfc/tfc-mvpapi/1.0.1-SNAPSHOT/tfc-mvpapi-1.0.1-SNAPSHOT.jar backend@161.35.80.91:/home/tfc/backend/backend.jar
+          - ssh backend@161.35.80.91 'sudo service backend start'
